@@ -5,6 +5,7 @@ Hello! Databend is a small project I've been working on in hopes of producing so
 
 ####Usage: <code>$databend "path/to/image.jpg" [operation] [parameters] [flags] </code>
 
+===
 
 ###Operations:
 
@@ -19,6 +20,7 @@ Hello! Databend is a small project I've been working on in hopes of producing so
 
 #####Example: <code>$databend "arbitrary/path/img.bmp" bshift 15 -c</code> 
 
+===
 
 ####lshift
 "Line Shift": This is similar to bshift, only it takes blocks that are the length of the image, and of random height, and shift them only to the right. There is a frequency associated with this operation to determine the number of line shifts per operation. 
