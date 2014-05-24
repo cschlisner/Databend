@@ -3,7 +3,7 @@ Databend
 
 Hello! Databend is a small project I've been working on in hopes of producing some nice [glitch art](http://www.glitch_art.reddit.com). It is mostly based on elements of randomness (as you can see from the code), but you can set certain constants if you want. I'll be adding more operations (and flags) as I go to make it a bit more extensive.
 
-###Usage: <code>$databend "path/to/image.jpg" [operation] [parameters] [flags] </code>
+####Usage: <code>$databend "path/to/image.jpg" [operation] [parameters] [flags] </code>
 
 
 ###Operations:
@@ -17,7 +17,7 @@ Hello! Databend is a small project I've been working on in hopes of producing so
 #####Flags (optional):
 <b>-c</b>: When added, this will apply a random color mask to the affected area.
 
-#####Example: <code>$databend "arbitrary/path/img.bmp" bshift 15 -c</code>
+#####Example: <code>$databend "arbitrary/path/img.bmp" bshift 15 -c</code> 
 
 
 ####lshift
@@ -28,7 +28,9 @@ none.
 
 #####Flags (optional):
 <b>-h x</b>: When added, this will limit the height of each line shift area to <b>x</b>px
+
 <b>-f x</b>: When added, this will set the frequency of each line shift operation to <b>x</b>%
+
 <b>-c</b>: When added, this will apply a random color mask to the affected area.
 
 #####Example: <code>$databend "arbitrary/path/img.bmp" lshift -f 30 -c</code>
