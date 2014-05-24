@@ -23,7 +23,7 @@ Hello! Databend is a small project I've been working on in hopes of producing so
 ===
 
 ###lshift
-"Line Shift": This is similar to bshift, only it takes blocks that are the length of the image, and of random height, and shift them only to the right. There is a frequency associated with this operation to determine the number of line shifts per operation. 
+"Line Shift": This is similar to bshift, only it takes blocks that are the length of the image, and of random height, and shifts them only to the right. There is a frequency associated with this operation to determine the number of line shifts per operation. 
 
 ####Parameters (required):
 none.
