@@ -18,7 +18,7 @@ Hello! Databend is a small project I've been working on in hopes of producing so
 ####Flags (optional):
 <b>-c</b>: When added, this will apply a random color mask to the affected area.
 
-####Example: <code>$databend "arbitrary/path/img.bmp" bshift 15 -c</code> 
+####Example: <code>$databend "img.bmp" bshift 15 -c</code> 
 
 ===
 
@@ -35,7 +35,7 @@ none.
 
 <b>-c</b>: When added, this will apply a random color mask to the affected area.
 
-####Example: <code>$databend "arbitrary/path/img.bmp" lshift -f 30 -c</code>
+####Example: <code>$databend "img.bmp" lshift -f 30 -c</code>
   
 
 
