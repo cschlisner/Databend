@@ -8,40 +8,84 @@ class databend {
 	public static void main(String[] args){
 		File file = new File(args[0]);
 		try{
+			System.out.println("Loading file... ");
 			BufferedImage image = ImageIO.read(file);
 			BufferedImage newImg = image;
-			if (args[1].equals("shift")){
-				if (args.length < 3)
-					System.out.println("udongoofed");
-				else {
-					int n = Integer.valueOf(args[2]);
-					System.out.print("[");
-					for (int i=0; i<n; ++i){
-						System.out.print(((float)(((float)i/(float)n)/0.1) % 1 == 0)?".":"");
-						newImg = pixelShift(newImg, -1,-1,-1,-1,-1,-1, false);
+			System.out.println("done.");
+			for (int i=1; i<args.length; ++i){
+				if (args[i].equals("bshift")){
+					if (i+1>=args.length){
+						System.out.println("bshift needs an iteration parameter!");
+						return;
 					}
-					System.out.print("]");
+					boolean bcol = false;
+					if (i+2<args.length){
+						if (args[i+2].equals("-c")) bcol = true;
+					}
+					newImg = blockShifter(newImg, Integer.valueOf(args[i+1]), bcol);
+				}
+				else if (args[i].equals("lshift")){
+					int lnmxhgt = -1, lnfreq = -1;
+					boolean lncol = false;
+					for (int j=i+1; j<=i+4; j+=2){
+						if (j+1<args.length){
+							if (args[j].equals("-h")) lnmxhgt = Integer.valueOf(args[j+1]);
+							else if (args[j].equals("-f")) lnfreq = Integer.valueOf(args[j+1]);
+						}
+						if (j<args.length)
+							if (args[j].equals("-c")) lncol = true;
+					}
+					newImg = lineShifter(newImg, lnmxhgt, lnfreq, lncol);
 				}
 			}
-			ImageIO.write(newImg, "bmp", file);						  	   
+			ImageIO.write(newImg, "jpg", new File("copy - "+file.toString()));						  	   
 		} catch (IOException e){}
 	}
 
-	public static BufferedImage adjustColors(BufferedImage img, int startx, int starty, 
-											int endx, int endy, int r, int g, int b, int a, int density){
+	public static BufferedImage lineShifter(BufferedImage img, int maxHeight, int frequency, boolean colored){
+		Random rand = new Random();
+		int minHeight = img.getHeight()/128;
+		maxHeight = (maxHeight!=-1)?maxHeight:rand.nextInt(img.getHeight()/18)+minHeight;
+		frequency = (frequency!=-1)?frequency:rand.nextInt(50)+48; 
+		int height=1;
+		int n = img.getHeight();
+		System.out.print("[");
+		for (int i = 0; i<n; i+=height){
+			if (i>=n) break;
+			System.out.print(((float)(((float)i/(float)n)/0.1) % 1 == 0)?".":"");
+			height = rand.nextInt(maxHeight)+minHeight;
+			if (height%(100/frequency)==0) /// there's a [frequency]% chance of the following code executing
+				img = pixelShift(img, 0, i, img.getWidth(), i+height, -1, 0, colored);
+		}
+		System.out.print("]");
+		return img;
+	}
+
+	public static BufferedImage blockShifter(BufferedImage img, int n, boolean colored){
+		System.out.print("[");
+		for (int i=0; i<n; ++i){
+			System.out.print(((float)(((float)i/(float)n)/0.1) % 1 == 0)?".":"");
+			img = pixelShift(img, -1,-1,-1,-1,-1,-1, colored);
+		}
+		System.out.print("]");
+		return img;
+	}
+
+	public static BufferedImage adjustColors(BufferedImage img, int startX, int startY, 
+											int endX, int endY, int r, int g, int b, int a, int density){
 		
 		Random rand = new Random();
-		starty = (starty!=-1)?starty:rand.nextInt(img.getHeight()-10);
-		endy = (endy!=-1)?endy:starty+rand.nextInt(img.getHeight()-starty);
-		startx = (startx!=-1)?startx:rand.nextInt(img.getWidth()-10);
-		endx = (endx!=-1)?endx:startx+rand.nextInt(img.getWidth()-startx);
+		startY = (startY!=-1)?startY:rand.nextInt(img.getHeight()-10);
+		endY = (endY!=-1)?endY:startY+rand.nextInt(img.getHeight()-startY);
+		startX = (startX!=-1)?startX:rand.nextInt(img.getWidth()-10);
+		endX = (endX!=-1)?endX:startX+rand.nextInt(img.getWidth()-startX);
 		r = (r!=-1)?r:rand.nextInt(256);
 		g = (g!=-1)?g:rand.nextInt(256);
 		b = (b!=-1)?b:rand.nextInt(256);
 		a = (a!=-1)?a:rand.nextInt(256);
 		density = (density!=-1)?density:rand.nextInt(5)+2;
-		int width = endx-startx, height = endy-starty;
-    	int[] colordata = img.getRGB(startx, starty, width, height, null, 0, width); 
+		int width = endX-startX, height = endY-startY;
+    	int[] colordata = img.getRGB(startX, startY, width, height, null, 0, width); 
 		int[] res = new int[colordata.length];
 		for (int i=0; i<colordata.length; i+=density){
 			Color color = new Color(colordata[i]);
@@ -50,41 +94,47 @@ class databend {
 			    (0<=(color.getGreen()+g)&&(color.getGreen() +g)<=255)? color.getGreen()+g:(g>0)?255:0,
 			    (0<=(color.getBlue()+b) &&(color.getBlue()  +b)<=255)? color.getBlue() +b:(b>0)?255:0,
 				(0<=(color.getAlpha()+a)&&(color.getAlpha() +a)<=255)? color.getAlpha() +a:(a>0)?255:0);
+			if (color.getRed()+color.getGreen()+color.getBlue()>=550) newColor = newColor.darker();
 			res[i] = newColor.getRGB();
 		}
-		img.setRGB(startx, starty, width, height, res, 0, width);
+		img.setRGB(startX, startY, width, height, res, 0, width);
 		return img;
 	}
 
-	public static BufferedImage pixelShift(BufferedImage img, int startx, int starty, 
-											int endx, int endy, int shiftx, int shifty, boolean colored){
+	public static BufferedImage pixelShift(BufferedImage img, int startX, int startY, 
+											int endX, int endY, int shiftx, int shifty, boolean colored){
 		Random rand = new Random();
-		starty = (starty!=-1)?starty:rand.nextInt(img.getHeight()-10);
-		endy = (endy!=-1)?endy:starty+1+rand.nextInt(img.getHeight()-starty);
-		startx = (startx!=-1)?startx:rand.nextInt(img.getWidth()-10);
-		endx = (endx!=-1)?endx:startx+1+rand.nextInt(img.getWidth()-startx);
-		shifty = (shifty!=-1)?shifty:rand.nextInt(endy-starty);
-		shiftx = (shiftx!=-1)?shiftx:rand.nextInt(endx-startx);
-		int width = endx-startx, height = endy-starty;
+		startY = (startY!=-1)?startY:rand.nextInt(img.getHeight()-10);
+		endY = (endY!=-1)?endY:startY+1+rand.nextInt(img.getHeight()-startY);
+		startX = (startX!=-1)?startX:rand.nextInt(img.getWidth()-10);
+		endX = (endX!=-1)?endX:startX+1+rand.nextInt(img.getWidth()-startX);
+		shifty = (shifty!=-1)?shifty:rand.nextInt(endY-startY);
+		shiftx = (shiftx!=-1)?shiftx:rand.nextInt(endX-startX);
 		// particular pixel   = colordata[y*img.getWidth() + x]; 
-    	int[] colordata = img.getRGB(startx, starty, width, height, null, 0, width);
+		startX = (startX>=0&&startX<img.getHeight())?startX:(startX>0)?img.getWidth()-1:0;
+		startY = (startY>=0&&startY<img.getHeight())?startY:(startX>0)?img.getHeight()-1:0;
+		endX = (endX>=0&&endX<img.getHeight())?endX:(endX>0)?img.getWidth()-1:0;
+		endY = (endY>=0&&endY<img.getHeight())?endY:(endY>0)?img.getHeight()-1:0;
+		int width = endX-startX, height = endY-startY;
+		
+    	int[] colordata = img.getRGB(startX, startY, width, height, null, 0, width);
 		int[] res = new int[colordata.length];
-		for (int x=0, y=0; x<width && y<height; x+=(x<width)?1:0, y+=(y<height)?1:0){
-			int[] rowx = new int[width];
-			int[] rowy = new int[height];			
-			for (int i=0; i<rowx.length; ++i)
-				rowx[i] = colordata[y*width + i];
-			for (int i=0; i<rowy.length; ++i)
-				rowy[i] = colordata[i*width + x];
-			rowx = arrayShift(rowx, shiftx);
-			rowy = arrayShift(rowy, shifty);
-			for (int i=0; i<rowx.length; ++i)
-				res[y*width + i] = rowx[i];
-			for (int i=0; i<rowy.length; ++i)
-				res[i*width + x] = rowy[i];
-		}
-		img.setRGB(startx, starty, width, height, res, 0, width); 
-		if (colored) img = adjustColors(img, startx, starty, endx, endy, -1, -1, -1, -1, 1);
+			for (int x=0, y=0; x<width && y<height; x+=(x<width)?1:0, y+=(y<height)?1:0){
+				int[] rowx = new int[width];
+				int[] rowy = new int[height];			
+				for (int i=0; i<rowx.length; ++i)
+					rowx[i] = colordata[y*width + i];
+				for (int i=0; i<rowy.length; ++i)
+					rowy[i] = colordata[i*width + x];
+				rowx = arrayShift(rowx, shiftx);
+				rowy = arrayShift(rowy, shifty);
+				for (int i=0; i<rowx.length; ++i)
+					res[y*width + i] = rowx[i];
+				for (int i=0; i<rowy.length; ++i)
+					res[i*width + x] = rowy[i];
+			}
+		img.setRGB(startX, startY, width, height, res, 0, width); 
+		if (colored) img = adjustColors(img, startX, startY, endX, endY, -1, -1, -1, -1, 1);
 		return img;
 	}
 
