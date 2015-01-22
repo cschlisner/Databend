@@ -37,6 +37,9 @@ class databend {
 					}
 					newImg = lineShifter(newImg, lnmxhgt, lnfreq, lncol);
 				}
+				else if (args[i].equals("psort")){
+					newImg = pixelSorter(newImg);
+				}
 			}
 			ImageIO.write(newImg, "jpg", new File("copy - "+file.toString()));						  	   
 		} catch (IOException e){}
@@ -70,6 +73,26 @@ class databend {
 		System.out.print("]");
 		return img;
 	}
+	//colordata[y*img.getWidth() + x]; 
+	public static BufferedImage pixelSorter(BufferedImage img){
+		int width = img.getWidth();
+		int[] colordata = img.getRGB(0, 0, width, img.getHeight(), null, 0, width); 
+		int[] rowdata = new int[width];
+		int[] averages = new int[width];
+		for (int y = 0; y<=img.getHeight(); ++y){
+			for (int i=0; i<width; ++i)
+				rowdata[i] = colordata[y*width+i];
+			for (int i=0; i<width; ++i){
+				Color c = new Color(rowdata[i]);
+				averages[i] = (c.getRed() + c.getGreen() + c.getBlue())/3;
+			}
+			quickSort(averages, 0, averages.length-1, rowdata);
+			for (int i=0; i<width; ++i)
+				colordata[y*width+i] = rowdata[i];
+		}
+		img.setRGB(0, 0, width, img.getHeight(), colordata, 0, width);
+		return img;
+	}	
 
 	public static BufferedImage adjustColors(BufferedImage img, int startX, int startY, 
 											int endX, int endY, int r, int g, int b, int a, int density){
@@ -149,4 +172,34 @@ class databend {
 		}
 		return arr;
 	}
+
+	private static void quickSort(int[] base, int low, int high, int[] secondary) {
+		if (secondary != null && base.length != secondary.length){
+  			System.out.println("Arrays need to be same size!");
+  			return;
+		}
+        int i = low;
+        int j = high;
+        int pivot = base[low+(high-low)/2];
+        while (i <= j) {
+            while (base[i] < pivot) i++;
+            while (base[j] > pivot) j--;
+            if (i <= j) {
+                swap(base, i, j);
+                if (secondary!=null) swap(secondary, i, j);
+                i++;
+                j--;
+            }
+        }
+        if (low < j)
+            quickSort(base, low, j, secondary);
+        if (i < high)
+            quickSort(base, i, high, secondary);
+    }
+
+    private static void swap(int[] arr, int i, int j){
+  		int temp = arr[i];
+		arr[i] = arr[j];
+		arr[j] = temp;
+  	}
 }
