@@ -12,7 +12,7 @@ class databend {
 			BufferedImage image = ImageIO.read(file);
 			BufferedImage newImg = image;
 			System.out.println("done.");
-			for (int i=1; i<args.length; ++i){
+			for (int i=2; i<args.length; ++i){
 				if (args[i].equals("bshift")){
 					if (i+1>=args.length){
 						System.out.println("bshift needs an iteration parameter!");
@@ -38,11 +38,23 @@ class databend {
 					newImg = lineShifter(newImg, lnmxhgt, lnfreq, lncol);
 				}
 				else if (args[i].equals("psort")){
-					newImg = pixelSorter(newImg);
+					boolean r = false, g = false, b = false, d = false;
+					for (int j=i+1; j<=i+2; ++j){
+						if (j<args.length){
+							if (args[j].equals("-r")) r=true;
+							else if (args[j].equals("-g")) g=true;
+							else if (args[j].equals("-b")) b=true;
+							else if (args[j].equals("-d")) d=true;
+						}
+					}
+					newImg = pixelSorter(newImg,d,r,g,b);
 				}
 			}
-			ImageIO.write(newImg, "jpg", new File("copy - "+file.toString()));						  	   
-		} catch (IOException e){}
+			ImageIO.write(newImg, "jpg", new File(args[1]));						  	   
+		} catch (IOException e){
+				System.out.println("Error. Check filename.");
+				return;
+		}
 	}
 
 	public static BufferedImage lineShifter(BufferedImage img, int maxHeight, int frequency, boolean colored){
@@ -52,7 +64,7 @@ class databend {
 		frequency = (frequency!=-1)?frequency:rand.nextInt(50)+48; 
 		int height=1;
 		int n = img.getHeight();
-		System.out.print("[");
+		System.out.print("working: [");
 		for (int i = 0; i<n; i+=height){
 			if (i>=n) break;
 			System.out.print(((float)(((float)i/(float)n)/0.1) % 1 == 0)?".":"");
@@ -65,7 +77,7 @@ class databend {
 	}
 
 	public static BufferedImage blockShifter(BufferedImage img, int n, boolean colored){
-		System.out.print("[");
+		System.out.print("working: [");
 		for (int i=0; i<n; ++i){
 			System.out.print(((float)(((float)i/(float)n)/0.1) % 1 == 0)?".":"");
 			img = pixelShift(img, -1,-1,-1,-1,-1,-1, colored);
@@ -74,23 +86,31 @@ class databend {
 		return img;
 	}
 	//colordata[y*img.getWidth() + x]; 
-	public static BufferedImage pixelSorter(BufferedImage img){
-		int width = img.getWidth();
-		int[] colordata = img.getRGB(0, 0, width, img.getHeight(), null, 0, width); 
+	public static BufferedImage pixelSorter(BufferedImage img, boolean d, boolean r, boolean g, boolean b){
+		if (!r&&!g&&!b){
+			r = !r;
+			g = !g;
+			b = !b;
+		}
+		int width = img.getWidth(), height = img.getHeight();
+		int[] colordata = img.getRGB(0, 0, width, height, null, 0, width); 
 		int[] rowdata = new int[width];
 		int[] averages = new int[width];
-		for (int y = 0; y<=img.getHeight(); ++y){
-			for (int i=0; i<width; ++i)
-				rowdata[i] = colordata[y*width+i];
+		System.out.print("working: [");
+		for (int y = 0; y<height; ++y){
+			System.out.print(((float)(((float)y/(float)height)/0.1) % 1 == 0)?".":"");
+			for (int i=((d)?width-1:0); i!=((d)?0:width); i+=((d)?-1:1))
+				rowdata[((d)?(width-1)-i:i)] = colordata[y*width+i];
 			for (int i=0; i<width; ++i){
 				Color c = new Color(rowdata[i]);
-				averages[i] = (c.getRed() + c.getGreen() + c.getBlue())/3;
+				averages[i] = (((r)?c.getRed():0)+((g)?c.getGreen():0)+((b)?c.getBlue():0))/(((r)?1:0)+((g)?1:0)+((b)?1:0));
 			}
 			quickSort(averages, 0, averages.length-1, rowdata);
-			for (int i=0; i<width; ++i)
-				colordata[y*width+i] = rowdata[i];
+			for (int i=((d)?width-1:0); i!=((d)?0:width); i+=((d)?-1:1))
+				 colordata[y*width+i] = rowdata[((d)?(width-1)-i:i)];
 		}
-		img.setRGB(0, 0, width, img.getHeight(), colordata, 0, width);
+		System.out.print("]");
+		img.setRGB(0, 0, width, height, colordata, 0, width);
 		return img;
 	}	
 
