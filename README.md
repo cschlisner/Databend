@@ -2,6 +2,15 @@ Databend
 ========
 
 Hello! Databend is a small project I've been working on in hopes of producing some nice [glitch art](http://www.glitch_art.reddit.com). It is mostly based on elements of randomness (as you can see from the code), but you can set certain constants if you want. I'll be adding more operations (and flags) as I go to make it a bit more extensive.
+####Example: 
+***Original:***
+
+![Original](https://raw.githubusercontent.com/cschlisner/Databend/master/butterfly1.jpg)
+
+
+***Processed:***
+
+![Processed](https://raw.githubusercontent.com/cschlisner/Databend/master/copy%20-%20butterfly1.jpg)
 
 ####Usage: <code>$databend "path/to/image.jpg" "path/to/output.jpg" [operation] [parameters] [flags] </code>
 
