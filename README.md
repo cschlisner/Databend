@@ -1,16 +1,21 @@
 Databend
 ========
 
-Hello! Databend is a small project I've been working on in hopes of producing some nice [glitch art](http://www.glitch_art.reddit.com). It is mostly based on elements of randomness (as you can see from the code), but you can set certain constants if you want. I'll be adding more operations (and flags) as I go to make it a bit more extensive.
+Hello! Databend is a small project I've been working on in hopes of producing some nice [glitch art](http://www.glitch_art.reddit.com). An image can be modified with this program with a very general level of control by the user. So while the output of two identical executions will never be the same, a user can specify which qualities the two resulting images should share. 
+
+The program is controlled by a series of operations and flags. The operations are performed on the image in the order they are specified in the command. 
+
+This means that the command ```$ java databend img.jpg out.jpg bshift 5 esort``` will output something completely different than the command ```$ java databend img.jpg out.jpg esort bshift 5```, while still sharing the same visual elements. 
+
 ####Example: 
 ***Original:***
 
-![Original](https://raw.githubusercontent.com/cschlisner/Databend/master/butterfly1.jpg)
+![Original](https://raw.githubusercontent.com/cschlisner/Databend/master/Examples/Original.jpg)
 
 
 ***Processed:***
 
-![Processed](https://raw.githubusercontent.com/cschlisner/Databend/master/copy%20-%20butterfly1.jpg)
+![Processed](https://raw.githubusercontent.com/cschlisner/Databend/master/Examples/Processed.jpg)
 
 ####Usage: <code>$databend "path/to/image.jpg" "path/to/output.jpg" [operation] [parameters] [flags] </code>
 
@@ -31,20 +36,20 @@ Hello! Databend is a small project I've been working on in hopes of producing so
 
 ===
 
-###lshift
-"Line Shift": This is similar to bshift, only it takes blocks that are the length of the image, and of random height, and shifts them only to the right. There is a frequency associated with this operation to determine the number of line shifts per operation. 
+###esort
+"Edge Sort": This operation will detect edges in the image according to an optionally specified sensitivity variable and sort pixels preceding the edges by a certain (optionally specified) distance. A color mask may also be applied after the sorting.  
 
 ####Parameters (required):
 none.
 
 ####Flags (optional):
-<b>-h x</b>: When added, this will limit the height of each line shift area to <b>x</b>px
+<b>-l x</b>: When added, this will set the length of each sorted area to <b>x</b>% of the total image width - Default is 8%. 
 
-<b>-f x</b>: When added, this will set the frequency of each line shift operation to <b>x</b>%
+<b>-s x</b>: When added, this will set the specificity of the edge detection to <b>x</b> - Default is 1.1. Higher values will detect less edges, while lower values will detect more. This may need adjustment for darker images or images with vauge edges. 
 
-<b>-c</b>: When added, this will apply a random color mask to the affected area.
+<b>-c x</b>: When added, this will apply a random color mask with an error of <b>x</b>%, this allows limiting of the "random colors" applied to match the image colors. 
 
-####Example: <code>$databend "img.bmp" "out.bmp" lshift -f 30 -c</code>
+####Example: <code>$databend "img.bmp" "out.bmp" esort -l 10</code>
   
 ===
 
