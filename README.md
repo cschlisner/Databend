@@ -28,10 +28,11 @@ This means that the command ```$ java databend img.jpg out.jpg bshift 5 esort```
 
 ####Parameters (required):
 <b>iterations</b>: This tells bshift how many different blocks of the image to shift. 
+[Example: bshift 7](https://github.com/cschlisner/Databend/blob/master/Examples/bshift/7.jpg)
 
 ####Flags (optional):
 <b>-c</b>: When added, this will apply a random color mask to the affected area.
-
+[Example: bshift 15 -c](https://github.com/cschlisner/Databend/blob/master/Examples/bshift/15-c.jpg)
 ####Example: <code>$databend "img.bmp" "out.bmp" bshift 15 -c</code> 
 
 ===
@@ -44,10 +45,13 @@ none.
 
 ####Flags (optional):
 <b>-l x</b>: When added, this will set the length of each sorted area to <b>x</b>% of the total image width - Default is 8%. 
+[Example: esort -s 0.1 -l 10 -c](https://github.com/cschlisner/Databend/blob/master/Examples/esort/-s0.1-l10-c.jpg)
 
 <b>-s x</b>: When added, this will set the specificity of the edge detection to <b>x</b> - Default is 1.1. Higher values will detect less edges, while lower values will detect more. This may need adjustment for darker images or images with vauge edges. 
+[Example: esort -s 0.1](https://github.com/cschlisner/Databend/blob/master/Examples/esort/-s0.1.jpg)
 
 <b>-c x</b>: When added, this will apply a random color mask with an error of <b>x</b>%, this allows limiting of the "random colors" applied to match the image colors. 
+[Example: esort -s 0.1 -l 10 -c](https://github.com/cschlisner/Databend/blob/master/Examples/esort/-s0.1-l10-c.jpg)
 
 ####Example: <code>$databend "img.bmp" "out.bmp" esort -l 10</code>
   
@@ -61,12 +65,16 @@ none.
 
 ####Flags (optional):
 <b>-d</b>: When added, this will change the sorting direction from left to right.
+[Example: psort -b -r -d](https://github.com/cschlisner/Databend/blob/master/Examples/psort/-b-r-d.jpg)
 
 <b>-r</b>: When added, this will sort based on the red value of each pixel.
+[Example: psort -r](https://github.com/cschlisner/Databend/blob/master/Examples/psort/-r.jpg)
 
 <b>-g</b>: When added, this will sort based on the green value of each pixel.
+[Example: psort -g](https://github.com/cschlisner/Databend/blob/master/Examples/psort/-g.jpg)
 
 <b>-b</b>: When added, this will sort based on the blue value of each pixel.
+[Example: psort -b](https://github.com/cschlisner/Databend/blob/master/Examples/psort/-b.jpg)
 
 #####<i>Note: any two of the color flags can be combined to sort on an average of the two, leaving out the third color from affecting the sort. All three flags enabled is equivalent to the default function.</i>
 
