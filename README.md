@@ -5,7 +5,7 @@ Hello! Databend is a small project I've been working on in hopes of producing so
 
 The program is controlled by a series of operations and flags. The operations are performed on the image in the order they are specified in the command. 
 
-This means that the command ```$ java databend img.jpg out.jpg bshift 5 esort``` will output something completely different than the command ```$ java databend img.jpg out.jpg esort bshift 5```, while still sharing the same visual elements. 
+This means that the command ```$ java ... bshift 5 esort``` will output something completely different than the command ```$ java ... esort bshift 5```, while still sharing the same visual elements. 
 
 ####Example: 
 ***Original:***
