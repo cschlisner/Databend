@@ -1,9 +1,11 @@
 import java.awt.image.BufferedImage;
 import java.awt.Color;
 import java.util.Random;
+import java.util.Arrays;
 import java.io.File;
 import java.io.IOException;
 import javax.imageio.ImageIO;
+
 class databend {
 	public static void main(String[] args){
 		File file = new File(args[0]);
@@ -12,7 +14,7 @@ class databend {
 			System.out.println("Loading file... ");
 			BufferedImage image = ImageIO.read(file);
 			BufferedImage newImg = image;
-			System.out.println("done.");
+			System.out.println("Working...");
 
 			for (int i=2; i<args.length; ++i){
 				if (args[i].equals("bshift")){
@@ -21,111 +23,138 @@ class databend {
 						return;
 					}
 					boolean bcol = false;
-					if (i+2<args.length){
+
+					if (i+2<args.length)
 						if (args[i+2].equals("-c")) bcol = true;
-					}
+					
+					System.out.format("blockshift n=%s col::%s | ", Integer.valueOf(args[i+1]), bcol);
+					long t = System.currentTimeMillis();
 					newImg = blockShifter(newImg, Integer.valueOf(args[i+1]), bcol);
-				}
-				else if (args[i].equals("lshift")){
-					int lnmxhgt = -1, lnfreq = -1;
-					boolean lncol = false;
-					for (int j=i+1; j<=i+4; j+=2){
-						if (j+1<args.length){
-							if (args[j].equals("-h")) lnmxhgt = Integer.valueOf(args[j+1]);
-							else if (args[j].equals("-f")) lnfreq = Integer.valueOf(args[j+1]);
-						}
-						if (j<args.length)
-							if (args[j].equals("-c")) lncol = true;
-					}
-					newImg = lineShifter(newImg, lnmxhgt, lnfreq, lncol);
+					System.out.println((System.currentTimeMillis() - t) + "ms");
 				}
 				else if (args[i].equals("psort")){
 					boolean r = false, g = false, b = false, d = false;
-					for (int j=i+1; j<=i+2; ++j){
-						if (j<args.length){
-							if (args[j].equals("-r")) r=true;
-							else if (args[j].equals("-g")) g=true;
-							else if (args[j].equals("-b")) b=true;
-							else if (args[j].equals("-d")) d=true;
-						}
+					for (int j=i+1; j<args.length; ++j){
+						if (!args[j].contains("-"))
+							break;
+						else if (args[j].equals("-r")) r=true;
+						else if (args[j].equals("-g")) g=true;
+						else if (args[j].equals("-b")) b=true;
+						else if (args[j].equals("-d")) d=true;
 					}
+					System.out.format("pixelsort red::%s green::%s blue::%s reversed::%s | ", r, g, b, d);
+					long t = System.currentTimeMillis();
 					newImg = pixelSorter(newImg,d,r,g,b);
+					System.out.println((System.currentTimeMillis() - t) + "ms");
+				}
+				else if (args[i].equals("esort")){
+					int trailLen = newImg.getWidth()/8, escol = -1; 
+					Double spec = 1.1;
+					for (int j=i+1; j<=i+6; j+=2){
+						if (j+1<args.length){
+							if (!args[j].contains("-"))
+								break;
+							if (args[j].equals("-c")) escol = Integer.valueOf(args[j+1]);
+							else if (args[j].equals("-l")) trailLen = (int)((float)newImg.getWidth()*(Double.valueOf(args[j+1])/100.0f));
+							else if (args[j].equals("-s")) spec = Double.valueOf(args[j+1]);
+						}
+					
+					}
+					System.out.format("edgesort col::%s len::%s spec::%s | ", escol, trailLen, spec);
+					long t = System.currentTimeMillis();
+					newImg = edgeSort(newImg, trailLen, spec, escol);
+					System.out.println((System.currentTimeMillis() - t) + "ms");
 				}
 			}
-			ImageIO.write(newImg, "jpg", new File(args[1]));						  	   
+			ImageIO.write(newImg, "jpg", new File(args[1]));	
+			System.out.println("Done.");					  	   
 		} catch (IOException e){
 				System.out.println("Error. Check filename.");
 				return;
 		}
 	}
 
-	public static BufferedImage lineShifter(BufferedImage img, int maxHeight, int frequency, boolean colored){
-		Random rand = new Random();
-		int minHeight = img.getHeight()/128;
-		maxHeight = (maxHeight!=-1)?maxHeight:rand.nextInt(img.getHeight()/18)+minHeight;
-		frequency = (frequency!=-1)?frequency:rand.nextInt(50)+48; 
-		int height=1;
-		int n = img.getHeight();
-		System.out.print("working: [");
-		for (int i = 0; i<n; i+=height){
-			if (i>=n) break;
-			// progress bar
-			System.out.print(((float)(((float)i/(float)n)/0.1) % 1 == 0)?".":"");
-			height = rand.nextInt(maxHeight)+minHeight;
-			// there's a [frequency]% chance of the following code executing
-			if (height%(100/frequency)==0) 
-				img = pixelShift(img, 0, i, img.getWidth(), i+height, -1, 0, colored);
+	public static BufferedImage blockShifter(BufferedImage img, int n, boolean colored){
+		int progInc = (n<10)?10/n:1;
+		for (int i=0; i<n; ++i){
+			img = pixelShift(img, -1,-1,-1,-1,-1,-1, colored);
 		}
-		System.out.print("]");
 		return img;
 	}
 
-	public static BufferedImage blockShifter(BufferedImage img, int n, boolean colored){
-		System.out.print("working: [");
-		for (int i=0; i<n; ++i){
-			// progress bar
-			System.out.print(((float)(((float)i/(float)n)/0.1) % 1 == 0)?".":"");
-			img = pixelShift(img, -1,-1,-1,-1,-1,-1, colored);
-		}
-		System.out.print("]");
-		return img;
-	}
 	public static BufferedImage pixelSorter(BufferedImage img, boolean d, boolean r, boolean g, boolean b){
+		return pixelSorter(img, 0, 0, img.getWidth(), img.getHeight(), d, r, g, b);
+	}
+
+	public static BufferedImage pixelSorter(BufferedImage img, int startX, int startY, 
+											int endX, int endY, boolean d, boolean r, boolean g, boolean b){
 		// If no color flags were set, use them all
 		if (!r&&!g&&!b){
 			r = !r;
 			g = !g;
 			b = !b;
 		}
-		int width = img.getWidth(), height = img.getHeight();
-		int[] colordata = img.getRGB(0, 0, width, height, null, 0, width); 
+
+		int width = endX-startX, height = endY-startY;
+		int[] colordata = null;
+		try {
+			colordata = img.getRGB(startX, startY, width, height, null, 0, width); 
+		} catch(Exception e){
+			System.out.println(String.format("startX: %s | startY: %s | endX: %s | endY: %s", startX, startY, endX, endY));
+		}
 		int[] rowdata = new int[width];
 		int[] averages = new int[width];
-		System.out.print("working: [");
-		for (int y = 0; y<height; ++y){
+		//System.out.print("psort: [");
+		for (int y = 0; y<height-1; ++y){
 			// progress bar
-			System.out.print(((float)(((float)y/(float)height)/0.1) % 1 == 0)?".":"");
+			//System.out.print(((float)(((float)y/(float)height)/0.1) % 1 == 0)?".":"");
+
 			// if direction is reversed fill in array from right, else fill in array from left
-			for (int i=((d)?width-1:0); i!=((d)?0:width); i+=((d)?-1:1))
-				rowdata[((d)?(width-1)-i:i)] = colordata[y*width+i];
+			for (int i=((d)?width-1:0); i!=((d)?0:width-1); i+=((d)?-1:1)){
+				try {
+					rowdata[((d)?(width-1)-i:i)] = colordata[y*width+(i)];
+				} catch (Exception e){
+					System.out.println("y = "+y+" i = "+i);
+					e.printStackTrace();
+				}
+			}
+
 			for (int i=0; i<width; ++i){
 				Color c = new Color(rowdata[i]);
 				// only use the average of the enabled colors
 				averages[i] = (((r)?c.getRed():0)+((g)?c.getGreen():0)+((b)?c.getBlue():0))/(((r)?1:0)+((g)?1:0)+((b)?1:0));
 			}
+
 			// sorts the rowdata[] based on the values in the averages[]
 			quickSort(averages, 0, averages.length-1, rowdata);
 			// need to put the values back in the same way we took them
 			for (int i=((d)?width-1:0); i!=((d)?0:width); i+=((d)?-1:1))
 				 colordata[y*width+i] = rowdata[((d)?(width-1)-i:i)];
 		}
-		System.out.print("]");
-		img.setRGB(0, 0, width, height, colordata, 0, width);
+		//System.out.println("]");
+		img.setRGB(startX, startY, width, height, colordata, 0, width);
 		return img;
-	}	
+	}
+
+	public static BufferedImage edgeSort(BufferedImage img, int trailLen, double specificity, int col){
+		int[][] edges = edgeDetector(img, specificity);
+
+		for (int[] e : edges){
+			int startX = (e[0] - trailLen) > 0 ? e[0]-trailLen : 0;
+
+			if (e[0] > 0 && (e[1] - 2) > 0){
+				img = pixelSorter(img, startX, e[1]-2, e[0], e[1], false, false, false, false);
+				if (col != -1)
+					img = mimicColors(img, startX, e[1]-2, e[0], e[1], col);
+			}
+			
+		}
+
+		return img;
+	}
 
 	public static BufferedImage adjustColors(BufferedImage img, int startX, int startY, 
-											int endX, int endY, int r, int g, int b, int a, int density){
+											int endX, int endY, int r, int g, int b, int a, int density, int similarity){
 		
 		Random rand = new Random();
 		// if dimensions are not explicitly set, select random ones
@@ -133,29 +162,105 @@ class databend {
 		endY = (endY!=-1)?endY:startY+rand.nextInt(img.getHeight()-startY);
 		startX = (startX!=-1)?startX:rand.nextInt(img.getWidth()-10);
 		endX = (endX!=-1)?endX:startX+rand.nextInt(img.getWidth()-startX);
+
 		// if colors are not explicitly set, select random ones
 		r = (r!=-1)?r:rand.nextInt(256);
 		g = (g!=-1)?g:rand.nextInt(256);
 		b = (b!=-1)?b:rand.nextInt(256);
-		a = (a!=-1)?a:rand.nextInt(256);
+		a = (a!=-1)?a:255;
+
 		// density needs to be at least 2 for image to be visible
 		density = (density!=-1)?density:rand.nextInt(5)+2;
 		int width = endX-startX, height = endY-startY;
     	int[] colordata = img.getRGB(startX, startY, width, height, null, 0, width); 
+
+    	
+    	// set colors to match average image colors within range of similarity
+    	int avgR=-1, avgG=-1, avgB=-1, avgA=-1;
+    	if (similarity > 0 && colordata.length > 0){
+    		avgR=1;
+    		avgG=1;
+    		avgB=1;
+    		avgA=1;
+    		for (int c : colordata){
+    			Color col = new Color(c);
+    			avgR += col.getRed();
+    			avgG += col.getGreen();
+    			avgB += col.getBlue();
+    			avgA += col.getAlpha();
+    		}
+    		avgR /= colordata.length;
+    		avgG /= colordata.length;
+    		avgB /= colordata.length;
+    		avgA /= colordata.length;
+    	}
+
 		int[] res = new int[colordata.length];
 		for (int i=0; i<colordata.length; i+=density){
+			// generates a new color for each pixel
+			int nr = (r!=-1)?r:(similarity!=-1)?(rand.nextInt(similarity*2)-similarity+avgR):rand.nextInt(256);
+			int ng = (g!=-1)?g:(similarity!=-1)?(rand.nextInt(similarity*2)-similarity+avgG):rand.nextInt(256);
+			int nb = (b!=-1)?b:(similarity!=-1)?(rand.nextInt(similarity*2)-similarity+avgB):rand.nextInt(256);
 			Color color = new Color(colordata[i]);
 			Color newColor = new Color(
-				(0<=(color.getRed()+r)  &&(color.getRed()   +r)<=255)? color.getRed()  +r:(r>0)?255:0, 
-			    (0<=(color.getGreen()+g)&&(color.getGreen() +g)<=255)? color.getGreen()+g:(g>0)?255:0,
-			    (0<=(color.getBlue()+b) &&(color.getBlue()  +b)<=255)? color.getBlue() +b:(b>0)?255:0,
-				(0<=(color.getAlpha()+a)&&(color.getAlpha() +a)<=255)? color.getAlpha() +a:(a>0)?255:0);
+				(0<=(color.getRed()+nr)  &&(color.getRed()   +nr)<=255)? color.getRed()  +nr:(nr>0)?255:0, 
+			    (0<=(color.getGreen()+ng)&&(color.getGreen() +ng)<=255)? color.getGreen()+ng:(ng>0)?255:0,
+			    (0<=(color.getBlue()+nb) &&(color.getBlue()  +nb)<=255)? color.getBlue() +nb:(nb>0)?255:0,
+			    0
+				);
 			// Too light of colors create a bad lighting effect
 			if (color.getRed()+color.getGreen()+color.getBlue()>=550) newColor = newColor.darker();
+			if (newColor.getRed() == newColor.getGreen() && newColor.getGreen() == newColor.getBlue())
+				newColor = new Color(nr, ng, nb, 255);
 			res[i] = newColor.getRGB();
 		}
 		img.setRGB(startX, startY, width, height, res, 0, width);
 		return img;
+	}
+
+
+	// Get a random color (sans alpha), and darken or lighten it to match original average brightness
+
+	public static BufferedImage mimicColors(BufferedImage img, int startX, int startY, 
+											int endX, int endY, int similarity){
+		Random rand = new Random();
+
+		Color randColor = new Color(rand.nextInt(256), rand.nextInt(256), rand.nextInt(256));
+
+    	int width = endX-startX, height = endY-startY;
+    	int[] colordata = img.getRGB(startX, startY, width, height, null, 0, width); 
+		
+		for (int i=0; i<colordata.length; ++i){
+			Color org = new Color(colordata[i]);
+			Color mod = Color.BLACK;
+			
+			int r = (int)(getBrightness(org)*((float)randColor.getRed()/(float)getBrightness(randColor)));
+			int g = (int)(getBrightness(org)*((float)randColor.getGreen()/(float)getBrightness(randColor)));
+			int b = (int)(getBrightness(org)*((float)randColor.getBlue()/(float)getBrightness(randColor)));
+			//System.out.println(r+" "+g+" "+b);
+
+			r = (r > org.getRed() ? org.getRed() + similarity : org.getRed() - similarity);
+			g = (g > org.getGreen() ? org.getGreen() + similarity : org.getGreen() - similarity);
+			b = (b > org.getBlue() ? org.getBlue() + similarity : org.getBlue() - similarity);
+
+			mod = new Color(r > 255 ? 255 : r < 0 ? 0 : r, g > 255 ? 255 : g < 0 ? 0 : g, b > 255 ? 255 : b < 0 ? 0 : b);
+
+			int orgB = getBrightness(org);
+			//System.out.println("org "+readCol(org)+" rand: "+readCol(randColor)+" mod: "+readCol(mod));
+
+			colordata[i] = mod.getRGB();
+		}
+
+		img.setRGB(startX, startY, width, height, colordata, 0, width);
+		return img;
+	}
+
+	private static int getBrightness(Color c){
+		return c.getRed()+c.getGreen()+c.getBlue();
+	}
+
+	private static String readCol(Color c){
+		return String.format("(%s,%s,%s)",c.getRed(),c.getGreen(),c.getBlue());
 	}
 
 	public static BufferedImage pixelShift(BufferedImage img, int startX, int startY, 
@@ -196,9 +301,92 @@ class databend {
 				res[i*width + x] = rowy[i];
 		}
 		img.setRGB(startX, startY, width, height, res, 0, width); 
-		if (colored) img = adjustColors(img, startX, startY, endX, endY, -1, -1, -1, -1, 1);
+		if (colored) img = mimicColors(img, startX, startY, endX, endY, 15);
 		return img;
 	}
+
+	public static int[][] edgeDetector(BufferedImage img, double specificity){
+		int width = img.getWidth(), height = img.getHeight();
+		int[] colordata = img.getRGB(0, 0, width, height, null, 0, width); 
+		int[][] res = new int[colordata.length][2];
+		int ei = 0;
+
+		// holds R+B+G for each color
+		int[] compoundColorData = new int[colordata.length];
+		int i = 0;
+		for (int cd : colordata){
+			Color c = new Color(cd);
+			compoundColorData[i++] = getBrightness(c);
+		}
+
+		double avgColorDiff = stdDeviation(compoundColorData);
+
+		int threshold = (int)(avgColorDiff * specificity);
+
+		//System.out.println("stdDev = "+avgColorDiff+"\nthreshold = "+threshold);
+
+		// size of measurement grid - 
+		// accuracy of 1 = 3x3 grid = (9-1) samples
+		// accuracy of 2 = 5x5 grid = (25-1) samples
+		int accuracy = 1;
+
+		for (int y = 0; y < height; ++y){
+			for (int x = 0; x < width; ++x){
+				Color p1 = new Color(colordata[y * width + x]);
+
+				Color[] samples = new Color[((accuracy*2+1)*(accuracy*2+1))-1];
+
+				int sampleIndex = 0;
+				for (int sy = 0; sy < accuracy*2+1; ++sy){
+					for (int sx = 0; sx < accuracy*2+1; ++sx){
+						if (sx == accuracy && sx == sy) // determining pixel
+							continue;
+						try {
+							samples[sampleIndex] = new Color(colordata[((y-accuracy)+sy) * width + ((x-accuracy)+sx)]);
+							++sampleIndex;
+						} catch(Exception e){
+							// the location of the sample pixel is out of image bounds, ignore it
+							++sampleIndex;
+						}
+					}
+				}
+
+				for (Color s : samples){
+					if (s != null){
+						int savg = (getBrightness(s)+1)/3;
+						int avg = (getBrightness(p1)+1)/3;
+						
+						if (x < width-1 && colCompare(p1, s, threshold)){
+							res[ei][0] = x;
+							res[ei++][1] = y; 
+						}
+					}
+				}
+			}
+		}
+		return res;
+	}
+
+	public static BufferedImage colorPixels(BufferedImage img, int[][] pix, Color col){
+		int width = img.getWidth(), height = img.getHeight();
+
+		int[] colordata = img.getRGB(0, 0, width, height, null, 0, width); 
+
+		for (int[] edge : pix)
+			colordata[edge[1] * width + edge[0]] = col.getRGB();
+
+		img.setRGB(0, 0, width, height, colordata, 0, width);
+		return img;
+	}
+
+	// compares two colors based on a threshold value and returns true if absolute values
+	// of the red, green, and blue component differences are equal or above the threshold
+	public static boolean colCompare(Color a, Color b, int threshold){
+		return (Math.abs(a.getRed() - b.getRed()) +
+				Math.abs(a.getGreen() - b.getGreen()) +
+				Math.abs(a.getBlue() - b.getBlue()) >= threshold);
+	}
+
 	// shifts all the values in an array a certain amount.
 	// If values overflow they go to the beginning
 	public static int[] arrayShift(int[] arr, int shift){
@@ -243,5 +431,30 @@ class databend {
   		int temp = arr[i];
 		arr[i] = arr[j];
 		arr[j] = temp;
+  	}
+
+  	// Finds standard deviation of values in int array
+  	private static double stdDeviation(int[] arr){
+  		double sum=0, mean=0;
+  		double[] diffs = new double[arr.length];
+
+  		// find mean of arr
+  		for (int val : arr)
+  			sum += val;
+  		mean = sum / arr.length;
+
+  		// find square-differences
+  		int i = 0;
+  		for (int val : arr)
+  			diffs[i++] = (val - mean)*(val - mean);
+
+  		// find mean of square-differences
+  		sum = 0;
+  		for (double val : diffs)
+  			sum += val;
+  		mean = sum / diffs.length;
+		
+		// return square root of square differences
+		return Math.sqrt(mean); 
   	}
 }
