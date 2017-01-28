@@ -65,6 +65,23 @@ class databend {
 					newImg = edgeSort(newImg, trailLen, spec, escol);
 					System.out.println((System.currentTimeMillis() - t) + "ms");
 				}
+				else if (args[i].equals("osort")){
+					Double spec = 1.1;
+					int rand = -1;
+					for (int j=i+1; j<=i+4; j+=2){
+						if (j<args.length){
+							if (!args[j].contains("-"))
+								break;
+							else if (args[j].equals("-s")) spec = Double.valueOf(args[j+1]);
+							else if (args[j].equals("-r")) rand = Integer.valueOf(args[j+1]);
+						}
+					
+					}
+					System.out.format("objectsort spec::%s | ", spec);
+					long t = System.currentTimeMillis();
+					newImg = objectSort(newImg, spec, rand);
+					System.out.println((System.currentTimeMillis() - t) + "ms");
+				}
 			}
 			ImageIO.write(newImg, "jpg", new File(args[1]));	
 			System.out.println("Done.");					  	   
@@ -133,6 +150,44 @@ class databend {
 		}
 		//System.out.println("]");
 		img.setRGB(startX, startY, width, height, colordata, 0, width);
+		return img;
+	}
+
+	public static BufferedImage objectSort(BufferedImage img, double specificity, int rand){
+		int[][] edges = edgeDetector(img, specificity);
+		
+		// pairs of pixels across object boundaries
+		// boundPair[Ycord] = {firstX, lastX}
+		int[][] boundPairs = new int[img.getHeight()][2];
+
+		for (int[] e : edges){
+			// first X cord is unset
+			if (boundPairs[e[1]][0] == 0 || e[0] < boundPairs[e[1]][0])
+				boundPairs[e[1]][0] = e[0];
+			//second X cord needs to be greatest
+			else if (boundPairs[e[1]][1] == 0 || e[0] > boundPairs[e[1]][1])
+				boundPairs[e[1]][1] = e[0];
+		}
+		Random r = new Random();
+		for (int[] pair : boundPairs){
+			if (rand > -1)
+				pair[1] = r.nextInt(rand);
+			if (pair[1] < pair[0]){
+				int t = pair[0];
+				pair[0] = pair[1];
+				pair[1] = t;
+				
+			}
+
+		}
+
+		for (int i = 0; i < boundPairs.length; ++i){
+			if (boundPairs[i][0] > 0 && (i - 2) > 0){
+				img = pixelSorter(img, boundPairs[i][0], i-2, boundPairs[i][1], i, false, false, false, false);
+			}
+			
+		}
+
 		return img;
 	}
 
