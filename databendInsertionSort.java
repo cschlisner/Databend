@@ -494,16 +494,15 @@ class databendInsertionSort {
 			System.out.println("Arrays need to be same size!");
 			return;
 		}
-
-		if (i < base.length){
-			for (int j = i+i; j < base.length; ++i){
-				if (base[j] < base[i]){
-					swap(base, i, j);
-					if (secondary!=null)
-						swap(secondary, i, j);
-				}
-			}
-			insertionSort(base, ++i, secondary);
+		int min = i;
+		if (i < base.length-1){
+			for (int j = i+1; j < base.length; ++j)
+				min = (base[j] < base[min]) ? j : min;
+			swap(base, i, min);
+			if (secondary!=null)
+				swap(secondary, i, min);
+				
+			f(base, ++i, secondary);
 		}
 	}
 
