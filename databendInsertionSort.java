@@ -83,7 +83,7 @@ class databendInsertionSort {
 					System.out.println((System.currentTimeMillis() - t) + "ms");
 				}
 			}
-			ImageIO.write(newImg, "jpg", new File(args[1]));	
+			saveImage(newImg, args[1]);	
 			System.out.println("Done.");					  	   
 		} catch (IOException e){
 				System.out.println("Error. Check filename.");
@@ -103,6 +103,10 @@ class databendInsertionSort {
 		return pixelSorter(img, 0, 0, img.getWidth(), img.getHeight(), d, r, g, b);
 	}
 
+	/**
+	*	Sorts average pixel values in region in img
+	*	row by row
+	*/
 	public static BufferedImage pixelSorter(BufferedImage img, int startX, int startY, 
 											int endX, int endY, boolean d, boolean r, boolean g, boolean b){
 		// If no color flags were set, use them all
@@ -122,10 +126,13 @@ class databendInsertionSort {
 		int[] rowdata = new int[width];
 		int[] averages = new int[width];
 		//System.out.print("psort: [");
+
+		// for each row of pixel in region (y-value)
 		for (int y = 0; y<height-1; ++y){
 			// progress bar
 			//System.out.print(((float)(((float)y/(float)height)/0.1) % 1 == 0)?".":"");
 
+			// create copy array of row pixel data
 			// if direction is reversed fill in array from right, else fill in array from left
 			for (int i=((d)?width-1:0); i!=((d)?0:width-1); i+=((d)?-1:1)){
 				try {
@@ -135,7 +142,7 @@ class databendInsertionSort {
 					e.printStackTrace();
 				}
 			}
-
+			// fill in an array of rgb average values
 			for (int i=0; i<width; ++i){
 				Color c = new Color(rowdata[i]);
 				// only use the average of the enabled colors
@@ -144,14 +151,22 @@ class databendInsertionSort {
 
 
 			//**********************************************************************************************************************************************
-			// databendQuicksort.java
-			// sorts the rowdata[] based on the values in the averages[]
-			// using quicksort
+			// databendInsertionSort.java:
+			//
+			// sorts rowdata[] based on the values in averages[]
+			// using [insertion sort] 
 			// 
 			insertionSort(averages, rowdata);
+			// sorts the entire row < -- we want the whole animation of the sorting to be 10 seconds
+			//						  -- so we want 10sec*60fps=600 frames for a whole capture
+			//						  -- which means for any given row, we need R iterations where
+			//						  -- R = (O(Sort())/600) 
+			//						  -- so after R iterations of the sort algorithm Sort(), we need to 
+			//						  -- save the data currently in the array being sorted, put it back
+			//						  -- in the image, and save it as a frame. 
+			//						  -- by the end we will have 600 frames of a sorting algorithm Sort()
+			//						  -- which is 10 seconds of 60fps video.
 			//
-			// TODO: make this parent for loop progress the sorting of each row by 1 iteration before going on to the next
-			// this will ensure the whole image appears to be sorted at once instead of row by row
 			//
 			//**********************************************************************************************************************************************/
 			// need to put the values back in the same way we took them
@@ -164,13 +179,8 @@ class databendInsertionSort {
 	}
 
 
-	private static void saveImage(BufferedImage img, String path){
-		try {
-
-		// write me
-		}catch(Exception e){
-			
-		}
+	private static void saveImage(BufferedImage img, String path) throws IOException{
+		ImageIO.write(img, "jpg", new File(path));
 	}
 
 	public static BufferedImage objectSort(BufferedImage img, double specificity, int rand){
