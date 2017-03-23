@@ -111,7 +111,7 @@ class databendInsertionSort {
 	private static int ITERATION_COUNT = 0;
 	private static int FPS = 60;
 	private static int VIDEO_LENGTH_SECS = 10;
-	private static String VIDEO_DIR = "databendInsertionSort/0/";
+	private static String VIDEO_DIR = "InsertionSort/0/";
 
 	/**
 	*	Sorts average pixel values in region in img
@@ -173,7 +173,6 @@ class databendInsertionSort {
 				// sorts rowdata[] based on the values in averages[]
 				// using [insertion sort] 
 				// 
-				System.out.println("R = "+R);
 				insertionSort(averages, ITERATION_COUNT, rowdata);
 				// sorts the entire row < -- we want the whole animation of the sorting to be 10 seconds
 				//						  -- so we want 10sec*60fps=600 frames for a whole capture
@@ -204,7 +203,7 @@ class databendInsertionSort {
 			img.setRGB(startX, startY, width, height, colordata, 0, width);
 
 			// image has now been sorted R iterations of Sort(), save it as a frame
-			saveImage(img, VIDEO_DIR+(FRAME_COUNT));
+			saveImage(img, VIDEO_DIR+(FRAME_COUNT)+".png");
 
 			// set the iteration parameter so the row sorting will continue on the exact iteration they left off (R)
 			ITERATION_COUNT = ITERATION_STOP;
