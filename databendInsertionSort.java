@@ -7,6 +7,7 @@ import java.io.IOException;
 import javax.imageio.ImageIO;
 
 class databendInsertionSort {
+
 	public static void main(String[] args){
 		File file = new File(args[0]);
 		try{
@@ -41,6 +42,16 @@ class databendInsertionSort {
 						else if (args[j].equals("-g")) g=true;
 						else if (args[j].equals("-b")) b=true;
 						else if (args[j].equals("-d")) d=true;
+						else if (args[j].equals("-record")) {
+							if (j+1<args.length){
+								VIDEO_DIR = args[j+1];
+								if (args[j+2]=="--R")
+									R = Integer.valueOf(args[j+3]);
+							}
+							else {
+								
+							}
+						}
 					}
 					System.out.format("pixelsort red::%s green::%s blue::%s reversed::%s | ", r, g, b, d);
 					long t = System.currentTimeMillis();
@@ -111,7 +122,7 @@ class databendInsertionSort {
 	private static int ITERATION_COUNT = 0;
 	private static int FPS = 60;
 	private static int VIDEO_LENGTH_SECS = 10;
-	private static String VIDEO_DIR = "InsertionSort/0/";
+	private static String VIDEO_DIR = "InsertionSort/4/";
 
 	/**
 	*	Sorts average pixel values in region in img
@@ -135,19 +146,28 @@ class databendInsertionSort {
 		}
 		int[] rowdata = new int[width];
 		int[] averages = new int[width];
-		//System.out.print("psort: [");
 
-		int frameTotal = (VIDEO_LENGTH_SECS * FPS);
+		// int frameTotal = (VIDEO_LENGTH_SECS * FPS);
+		//OR
+		int frameTotal = n = width;
 		
-		// R = best case O(sort()) / frameTotal
-		R = width / frameTotal; // using BEST case runtime for insertion sort -> O(n) -> n -> width
-		ITERATION_STOP = R;
+		int complexityBest = n;
+		int complexityWorst = (n*n);
 
+		// R = (best case O(sort()) / frameTotal) || Use best case in order to underestimate actual runtime rather than overestimate
+		if (R!=0) // if user set R manually don't override, also R can't be 0 
+			R = 10*(complexityBest / width); // using BEST case runtime for insertion sort -> O(n) -> n -> width
+		System.out.println("R: "+R);
+		ITERATION_STOP = R;
+		int sortedRows = 0;
+		System.out.print("psort: [");
+		animationLoop:
 		for (int FRAME_COUNT = 0; FRAME_COUNT < frameTotal; ++FRAME_COUNT){
 			// for each row of pixel in region (y-value)
+			
+			// progress bar
+			System.out.print(((float)(((float)FRAME_COUNT/(float)frameTotal)/0.1) % 1 == 0)?".":"");
 			for (int y = 0; y<height-1; ++y){
-				// progress bar
-				//System.out.print(((float)(((float)y/(float)height)/0.1) % 1 == 0)?".":"");
 
 				// create copy array of row pixel data
 				// if direction is reversed fill in array from right, else fill in array from left
@@ -173,10 +193,15 @@ class databendInsertionSort {
 				// sorts rowdata[] based on the values in averages[]
 				// using [insertion sort] 
 				// 
-				insertionSort(averages, ITERATION_COUNT, rowdata);
-				// sorts the entire row < -- we want the whole animation of the sorting to be 10 seconds
+				try {
+					insertionSort(averages, ITERATION_COUNT, rowdata);
+				} catch (Exception e){
+					if (++sortedRows == height)
+						break animationLoop;
+				}
+				// sorts the entire row < -- we want the whole animation of the sorting
 				//						  -- so we want 10sec*60fps=600 frames for a whole capture
-				//						  -- which means for every row, we need R iterations where
+				//						  -- which means for every row, we need R iterations before saving the image as a frame where
 				//						  -- R = (O(Sort())/600) 
 				//						  -- but we need to use best-case O(Sort()), because if we use worst case O(n)
 				//						  -- we will be assuming there are more total iterations then there are in reality, 
@@ -203,7 +228,7 @@ class databendInsertionSort {
 			img.setRGB(startX, startY, width, height, colordata, 0, width);
 
 			// image has now been sorted R iterations of Sort(), save it as a frame
-			saveImage(img, VIDEO_DIR+(FRAME_COUNT)+".png");
+			saveImage(img, VIDEO_DIR+"/"+(FRAME_COUNT)+".jpeg");
 
 			// set the iteration parameter so the row sorting will continue on the exact iteration they left off (R)
 			ITERATION_COUNT = ITERATION_STOP;
@@ -211,7 +236,7 @@ class databendInsertionSort {
 			ITERATION_STOP += R;
 		}
 
-		//System.out.println("]");
+		System.out.println("]");
 		img.setRGB(startX, startY, width, height, colordata, 0, width);
 		return img;
 	}
@@ -221,14 +246,14 @@ class databendInsertionSort {
 	// array using the values in the base array.
 	// base = color averages
 	// secondary = row data
-	private static void insertionSort(int[] base, int[] secondary){
+	private static void insertionSort(int[] base, int[] secondary) throws Exception{
 		insertionSort(base, 0, secondary);
 	}
 
-	private static void insertionSort(int[] base, int i, int[] secondary){
+	private static void insertionSort(int[] base, int i, int[] secondary) throws Exception{
 		if (i == ITERATION_STOP){
 			// EXIT AFTER ITERATION_STOP ITERATIONS
-			return;			
+			return;
 		}
 		if (secondary != null && base.length != secondary.length){
 			System.out.println("Arrays need to be same size!");
@@ -244,6 +269,7 @@ class databendInsertionSort {
 				
 			insertionSort(base, ++i, secondary);
 		}
+		else throw new Exception("Sorted!");
 	}
 	// I'll give you one guess
     private static void swap(int[] arr, int i, int j){
