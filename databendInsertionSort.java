@@ -156,16 +156,25 @@ class databendInsertionSort {
 			// sorts rowdata[] based on the values in averages[]
 			// using [insertion sort] 
 			// 
-			insertionSort(averages, rowdata);
+			R = width / 600; // using BEST case runtime for insertion sort -> O(n)
+			System.out.println("R="+R);
+			insertionSort(averages, rowdata, img, d, startX, startY, width, height, y, colordata);
 			// sorts the entire row < -- we want the whole animation of the sorting to be 10 seconds
 			//						  -- so we want 10sec*60fps=600 frames for a whole capture
 			//						  -- which means for any given row, we need R iterations where
 			//						  -- R = (O(Sort())/600) 
+			//						  -- but we need to use best-case O(Sort()), because if we use worst case O(n)
+			//						  -- we will be assuming there are more total iterations then there are in reality, 
+			//						  -- and since R is proportional to total iterations, we will also overestimate R
+			//						  -- which is inversely proportional to the total frame count, so we will get a shortage of frames. 
+			//
 			//						  -- so after R iterations of the sort algorithm Sort(), we need to 
 			//						  -- save the data currently in the array being sorted, put it back
 			//						  -- in the image, and save it as a frame. 
 			//						  -- by the end we will have 600 frames of a sorting algorithm Sort()
 			//						  -- which is 10 seconds of 60fps video.
+			// create a general function to iterate an 
+			//
 			//
 			//
 			//**********************************************************************************************************************************************/
@@ -177,9 +186,26 @@ class databendInsertionSort {
 		img.setRGB(startX, startY, width, height, colordata, 0, width);
 		return img;
 	}
+	// Capture Rate calculated by runtime(#iterations)/(total frames) = nlogn/600 where n = data width for quicksort
+	private static int R = 0;
 
 
-	private static void saveImage(BufferedImage img, String path) throws IOException{
+	private static void saveImage(BufferedImage img, boolean d, int startX, int startY, int width, int height, int y, int[] rowdata, int[] colordata, String path){
+		// need to put the values back in the same way we took them
+		for (int i=((d)?width-1:0); i!=((d)?0:width); i+=((d)?-1:1))
+			 colordata[y*width+i] = rowdata[((d)?(width-1)-i:i)];
+
+		// System.out.println("]");
+		img.setRGB(startX, startY, width, height, colordata, 0, width);
+
+		try {
+			saveImage(img, path);
+		} catch(IOException e){
+			System.out.println("no");
+		}
+	}
+
+	private static void saveImage(BufferedImage img, String path) throws IOException {
 		ImageIO.write(img, "jpg", new File(path));
 	}
 
@@ -496,10 +522,16 @@ class databendInsertionSort {
 	// find lowest val, bring to front
 	// if seconday array is passed, quick sorts both the base array and the secondary
 	// array using the values in the base array.
-	private static void insertionSort(int[] base, int[] secondary){
-		insertionSort(base, 0, secondary);
+	// base = color averages
+	// secondary = row data
+	private static void insertionSort(int[] base, int[] secondary, BufferedImage img, boolean d, int startX, int startY, int width, int height, int y, int[] colordata){
+		insertionSort(base, 0, secondary, img, d, startX, startY, width, height, y, colordata);
 	}
-	private static void insertionSort(int[] base, int i, int[] secondary){
+	static int AI = 0;
+	private static void insertionSort(int[] base, int i, int[] secondary, BufferedImage img, boolean d, int startX, int startY, int width, int height, int y, int[] colordata){
+		if (i == R){
+			saveImage(img, d, startX, startY, width, height, y, secondary, colordata, "databendInsertionSort/0/"+(AI++));
+		}
 		if (secondary != null && base.length != secondary.length){
 			System.out.println("Arrays need to be same size!");
 			return;
@@ -512,7 +544,7 @@ class databendInsertionSort {
 			if (secondary!=null)
 				swap(secondary, i, min);
 				
-			f(base, ++i, secondary);
+			insertionSort(base, ++i, secondary, img, d, startX, startY, width, height, y, colordata);
 		}
 	}
 
