@@ -2,20 +2,22 @@ import java.awt.image.BufferedImage;
 import java.awt.Color;
 import java.util.Random;
 import java.util.Arrays;
-import java.io.File;
+import java.io.*;
 import java.io.IOException;
 import javax.imageio.ImageIO;
+import java.util.Scanner; 
+
 
 class databendAnimate {
 
 	public static void main(String[] args){
 		File file = new File(args[0]);
-		VIDEO_DIR = "InsertionSort/"+args[args.length-1]+"/";
-		try{
-
+		try {
 			System.out.println("Loading file... ");
 			BufferedImage image = ImageIO.read(file);
 			BufferedImage newImg = image;
+			
+
 			System.out.println("Working...");
 
 			for (int i=2; i<args.length; ++i){
@@ -89,19 +91,20 @@ class databendAnimate {
 				}
 
 				else if (args[i].equals("animate")) {
+					// argument count
+					int ARGC = 2;
+
 					if (i+1>=args.length){
 						System.out.println("animate needs an mode parameter!");
 						return;
 					}
 					
 					String mode = args[i+1];
-					int r = 1; // capture rate of processing: 
+					int r = -1; // capture rate of processing: 
 							  // r = 1  => every call to saveFrame() is aknowledged		 =>	100% frame ouput
 							 //	 r = 23 => every 23rd call to saveFrame() is aknowledged => (100/23)% frame output
-					for (int j=i+2; j<=i+2; j+=2){
-						
+					for (int j=i+2; j<=i+(ARGC*2)+1; j+=2){
 						if (j<args.length){
-							
 							if (!args[j].contains("-"))
 								break;
 
@@ -110,17 +113,26 @@ class databendAnimate {
 							if (args[j].equals("--capture-rate"))
 								if (j+1 < args.length)
 									r = Integer.valueOf(args[j+1]);
+
+							if (args[j].equals("--max-frames"))
+								if (j+1 < args.length)
+									VideoManager.MaxFrames = Integer.valueOf(args[j+1]);
+								
 							
 						}
 					
 					}
 
-					System.out.format("animate mode::%s capture-rate:%s| ", mode, r);
+					System.out.format("animate mode::%s capture-rate::%s max-frames::%s | \n", mode, r, VideoManager.MaxFrames);
 					long t = System.currentTimeMillis();
-					newImg = animate(newImg, mode, r);
+					newImg = animate(newImg, mode, r, VideoManager.MaxFrames);
+					System.out.println("Creating video ... ");
+					VideoManager.createMp4FFMPEG(args[1].replace(".jpg", ""), 10);
 					System.out.println((System.currentTimeMillis() - t) + "ms");
 				}	
 			}
+			ImageIO.write(newImg, "jpg", new File(args[1]));
+
 			System.out.println("Done.");					  	   
 		} catch (IOException e){
 				System.out.println("Error. Check filename.");
@@ -140,38 +152,176 @@ class databendAnimate {
 		return pixelSorter(img, 0, 0, img.getWidth(), img.getHeight(), d, r, g, b);
 	}
 
-
-	public static BufferedImage animate(BufferedImage img, String mode, int r){
-		int R = r;
-
-		// int frameTotal = width;
-		// int n = width;
+	private static int ITERATION_STOP = -1; // preset to -1 since we need capture rate first
+	public static BufferedImage animate(BufferedImage img, String mode, int r, int maxframes){
+		boolean d = true;
+		boolean rd = true;
+		boolean g = true;
+		boolean b = true;
 		
-		// int complexityBest = n;
-		// int complexityWorst = (n*n);
+		VideoManager.setFrameDir(String.format("Animation_%s", mode));
+		VideoManager.setAnimImg(img);
+		VideoManager.MaxFrames = maxframes;
 
-		// R = r > 0 ? r : 10*(complexityBest / width); 
+		// use user-set capture rate if user supplied one otherwise we'll figure it out 
+		// with the mode
+		int captureRate = (r > 0) ? r : -1;
 
-		switch (mode.toLowerCase()){
-			case "insertionsort":
-				// record insertion sort of whole image
-			break;
+		int width = img.getWidth();
+		int n = width; // for proper O(n) notation
+		int height = img.getHeight();
+
+		int frameTotal = width; // for O(n) complexity 
+
+		System.out.println("\n===debug===\n(frameTotal)=(width)=(n)=(rowdata.length)="+frameTotal+"\n");
+
+
+		int[] rowdata = new int[width];
+		int[] averages = new int[width];
+		
+		System.out.println("===debug===\n(ITERATION_STOP)-(ITERATION_START)=(capture-rate)=(r)=(captureRate)="+captureRate+"\n"+
+							"// Number of Iterations to perform of (mode)(<imagedata>) before saving 1 frame\n");
+		int ITERATION_START = 0; 
+
+		System.out.println("===debug===\nframeTotal="+frameTotal+"\n");
+		int sortedRows = 0;
+
+		int complexityBest = 0;
+
+		String frame_dbg_info="";
+		animationLoop:
+		for (int FRAME_COUNT = 0; FRAME_COUNT < frameTotal && FRAME_COUNT < VideoManager.MaxFrames; ++FRAME_COUNT){
+			// for each row of pixel in region (y-value)
+			// System.out.println("===debug===\n");
+			
+			// progress bar
+			printProgress(FRAME_COUNT, frameTotal, String.format(" (FRAME_COUNT)=%s | %s", FRAME_COUNT, frame_dbg_info));
+			frame_dbg_info="";
+			
+			for (int y = 0; y<height-1; ++y){ // for per-row modification methods
+				try {
+
+
+
+
+					//****************************************************************************************
+					// Methods used here need to: 
+					//
+					// - accept and use the parameter ITERATION_START to resume modification from any iteration
+					// 		(use an overloaded signature to figure out required parameters from ITERATION_COUNT)
+					//			(see quickSort example)
+					// - exit immediately if (ITERATION_COUNT == ITERATION_STOP)
+					// 		(store variables necessary for method continuation in globals before exit)
+					//			(see quickSort example)
+					// - throw an exception when the method is finished with processing the array (e.g. when it's sorted) 
+					//
+					// Before calling method, make sure to set the complexityBest variable and the captureRate
+					//****************************************************************************************
+					switch (mode.toLowerCase()){
+						case "isort":
+						case "insertion":
+						case "insertionsort":
+							complexityBest = n;							
+							captureRate = captureRate > 0 ? captureRate : 10*(complexityBest / width);
+							ITERATION_STOP = (ITERATION_STOP < 0) ? captureRate : ITERATION_STOP;
+							//////////////
+
+							// fill out rowdata[] and averages[] arrays
+    						getRowDataAverages(rowdata, averages, width, y, d, rd, g, b);
+
+							insertionSort(averages, ITERATION_START, rowdata);
+    						
+    						replaceRowData(rowdata, width, y, d);
+
+							break;
+
+						case "qsort":
+						case "quick":
+						case "quicksort":
+							complexityBest = (int)(n*Math.log(n));
+							captureRate = (int)(captureRate > 0 ? captureRate : 10*(complexityBest / width));
+							ITERATION_STOP = (ITERATION_STOP < 0) ? captureRate : ITERATION_STOP;
+							//////////////
+							
+							// fill out rowdata[] and averages[] arrays
+    						getRowDataAverages(rowdata, averages, width, y, d, rd, g, b);
+							
+							quickSort(averages, ITERATION_START, rowdata);
+
+    						replaceRowData(rowdata, width, y, d);
+
+							break;
+					}
+
+
+
+
+				} catch (Exception e){
+					frame_dbg_info+="                  ---Sorted Row----";
+					if (++sortedRows == height)
+						break animationLoop;
+				}
+			}
+			// save a frame
+			try {
+				VideoManager.saveFrame();
+			} catch (Exception e){
+				System.out.format("Amount of frames has exceeded specified max (%s).\nContinue? (y/n) ", VideoManager.MaxFrames);
+				Scanner scan = new Scanner(System.in);
+				String s = scan.next();
+				if (s.trim().equals("y"))
+					VideoManager.MaxFrames = 0; // remove max amount ... 
+				else break animationLoop;
+			}
+
+			// set the iteration parameter so the row sorting will continue on the exact iteration they left off (R)
+			ITERATION_START = ITERATION_STOP;
+			// add another R to complete the next set of iterations so the next run will cover R -> 2R
+			ITERATION_STOP += captureRate;
 		}
-		// anonymous function to animate whatever algorithm performing operations on image rows
-		// create saveFrame() funct to save current state of pixel arrays to a frame of a video
-		return null;
+		System.out.println();
+		img.setRGB(0, 0, width, height, VideoManager.getAnimFrameColorData(), 0, width);
+		return img;
 	}
 
+	// Kick-ass progress bar Stolen from github.com/cschlisner/uniChess
+	public static void printProgress(int prog, int total, String status){
+        double percent = (double)prog/total;
+        double percentFrom20 = 20 * percent;
+        System.out.print("\rProcessing [");
+        for (int i = 0; i < 20; ++i){
+            if (i <= (int)percentFrom20)
+                System.out.print("=");
+            else System.out.print(" ");
+        }
+        System.out.print("] "+status);
+    }
 
+    private static void getRowDataAverages(int[] rowdata, int[] averages, int width, int y, boolean d, boolean rd, boolean g, boolean b){
+    	// create copy array of row pixel data
+		// if direction is reversed fill in array from right, else fill in array from left
+		for (int i=((d)?width-1:0); i!=((d)?0:width-1); i+=((d)?-1:1)){
+			try {
+				rowdata[((d)?(width-1)-i:i)] = VideoManager.getAnimFrameColorData()[y*width+(i)];
+			} catch (Exception e){
+				System.out.println("y = "+y+" i = "+i);
+				e.printStackTrace();
+			}
+		}
+		// fill in an array of rgb average values
+		for (int i=0; i<width; ++i){
+			Color c = new Color(rowdata[i]);
+			// only use the average of the enabled colors
+			averages[i] = (((rd)?c.getRed():0)+((g)?c.getGreen():0)+((b)?c.getBlue():0))/(((rd)?1:0)+((g)?1:0)+((b)?1:0));
+		}
+    }
 
-	// Capture Rate calculated by runtime(#iterations)/(total frames) = nlogn/600 where n = data width for quicksort
-	private static int R = 0;
-	private static int ITERATION_STOP = 0;
-	private static int FRAME_COUNT = 0;
-	private static int ITERATION_COUNT = 0;
-	private static int FPS = 60;
-	private static int VIDEO_LENGTH_SECS = 10;
-	private static String VIDEO_DIR = "InsertionSort/";
+    private static void replaceRowData(int[] rowdata, int width, int y, boolean d){
+    	// need to put the values back in the same way we took them
+		for (int i=((d)?width-1:0); i!=((d)?0:width); i+=((d)?-1:1))
+			 VideoManager.getAnimFrameColorData()[y*width+i] = rowdata[((d)?(width-1)-i:i)];
+    }
+
 
 	/**
 	*	Sorts average pixel values in region in img
@@ -195,99 +345,37 @@ class databendAnimate {
 		}
 		int[] rowdata = new int[width];
 		int[] averages = new int[width];
-
-		// int frameTotal = (VIDEO_LENGTH_SECS * FPS);
-		//OR
-		int frameTotal = width;
-		int n = width;
-		
-		int complexityBest = n;
-		int complexityWorst = (n*n);
-
-		// R = (best case O(sort()) / frameTotal) || Use best case in order to underestimate actual runtime rather than overestimate
-		if (R==0) // if user set R manually don't override, also R can't be 0 
-			R = 10*(complexityBest / width); // using BEST case runtime for insertion sort -> O(n) -> n -> width
-		R=3;
-		System.out.println("R: "+R);
-		ITERATION_STOP = R;
-		int sortedRows = 0;
-		System.out.print("psort: [");
-		animationLoop:
-		for (int FRAME_COUNT = 0; FRAME_COUNT < frameTotal; ++FRAME_COUNT){
-			// for each row of pixel in region (y-value)
-			
+		//System.out.print("psort: [");
+		for (int y = 0; y<height-1; ++y){
 			// progress bar
-			System.out.print(((float)(((float)FRAME_COUNT/(float)frameTotal)/0.1) % 1 == 0)?".":"");
-			for (int y = 0; y<height-1; ++y){
+			//System.out.print(((float)(((float)y/(float)height)/0.1) % 1 == 0)?".":"");
 
-				// create copy array of row pixel data
-				// if direction is reversed fill in array from right, else fill in array from left
-				for (int i=((d)?width-1:0); i!=((d)?0:width-1); i+=((d)?-1:1)){
-					try {
-						rowdata[((d)?(width-1)-i:i)] = colordata[y*width+(i)];
-					} catch (Exception e){
-						System.out.println("y = "+y+" i = "+i);
-						e.printStackTrace();
-					}
-				}
-				// fill in an array of rgb average values
-				for (int i=0; i<width; ++i){
-					Color c = new Color(rowdata[i]);
-					// only use the average of the enabled colors
-					averages[i] = (((r)?c.getRed():0)+((g)?c.getGreen():0)+((b)?c.getBlue():0))/(((r)?1:0)+((g)?1:0)+((b)?1:0));
-				}
-
-
-				//**********************************************************************************************************************************************
-				// databendInsertionSort.java:
-				//
-				// sorts rowdata[] based on the values in averages[]
-				// using [insertion sort] 
-				// 
+			// if direction is reversed fill in array from right, else fill in array from left
+			for (int i=((d)?width-1:0); i!=((d)?0:width-1); i+=((d)?-1:1)){
 				try {
-					insertionSort(averages, ITERATION_COUNT, rowdata);
+					rowdata[((d)?(width-1)-i:i)] = colordata[y*width+(i)];
 				} catch (Exception e){
-					if (++sortedRows == height)
-						break animationLoop;
+					System.out.println("y = "+y+" i = "+i);
+					e.printStackTrace();
 				}
-				// sorts the entire row < -- we want the whole animation of the sorting
-				//						  -- so we want 10sec*60fps=600 frames for a whole capture
-				//						  -- which means for every row, we need R iterations before saving the image as a frame where
-				//						  -- R = (O(Sort())/600) 
-				//						  -- but we need to use best-case O(Sort()), because if we use worst case O(n)
-				//						  -- we will be assuming there are more total iterations then there are in reality, 
-				//						  -- and since R is proportional to total iterations, we will also overestimate R
-				//						  -- which is inversely proportional to the total frame count, so we will get a shortage of frames. 
-				//
-				//						  -- so after R iterations of the sort algorithm Sort(), 
-				//						  -- the yth row of data is partially sorted, we want every row of data partially sortd to give the 
-				//						  -- effect of all rows being sorted at once.
-				//						  -- Once a an iteration count of R is hit, the sorting algorithm needs to "pause" at the Rth iteration 
-				//						  -- R = same for all rows, so we can easily wait until the last row has finished (y == startY+height)
-				//						  -- and then save the image when all rows are partially processed after R iterations. 
-				//						  -- then double R for next set of iterations and continue to execute until all rows are completely processed
-				//
-				//						  -- by the end we will have 600 frames of a sorting algorithm Sort()
-				//						  -- which is 10 seconds of 60fps video.
-				//
-				//
-				//**********************************************************************************************************************************************/
-				// need to put the values back in the same way we took them
-				for (int i=((d)?width-1:0); i!=((d)?0:width); i+=((d)?-1:1))
-					 colordata[y*width+i] = rowdata[((d)?(width-1)-i:i)];
 			}
-			img.setRGB(startX, startY, width, height, colordata, 0, width);
 
-			// image has now been sorted R iterations of Sort(), save it as a frame
-			saveImage(img, VIDEO_DIR+"/"+(FRAME_COUNT)+".jpeg");
-
-			// set the iteration parameter so the row sorting will continue on the exact iteration they left off (R)
-			ITERATION_COUNT = ITERATION_STOP;
-			// add another R to complete the next set of iterations so the next run will cover R -> 2R
-			ITERATION_STOP += R;
+			for (int i=0; i<width; ++i){
+				Color c = new Color(rowdata[i]);
+				// only use the average of the enabled colors
+				averages[i] = (((r)?c.getRed():0)+((g)?c.getGreen():0)+((b)?c.getBlue():0))/(((r)?1:0)+((g)?1:0)+((b)?1:0));
+			}
+			try {
+				// sorts the rowdata[] based on the values in the averages[]
+				quickSort(averages, 0, averages.length-1, rowdata);
+			} catch(Exception e){
+				// sorted
+			}
+			// need to put the values back in the same way we took them
+			for (int i=((d)?width-1:0); i!=((d)?0:width); i+=((d)?-1:1))
+				 colordata[y*width+i] = rowdata[((d)?(width-1)-i:i)];
 		}
-
-		System.out.println("]");
+		//System.out.println("]");
 		img.setRGB(startX, startY, width, height, colordata, 0, width);
 		return img;
 	}
@@ -322,6 +410,60 @@ class databendAnimate {
 		}
 		else throw new Exception("Sorted!");
 	}
+
+
+	static int[] qsLOW = null;
+	static int[] qsHIGH = null;
+	static int qsI = 0;
+	private static void quickSort(int[] base, int i, int[] secondary){
+		qsI = i;
+		if (qsLOW == null){
+			// n^2
+			int complexityWorstQuickSort = base.length*base.length;
+
+			qsLOW = new int[complexityWorstQuickSort]; // 
+			qsHIGH = new int[complexityWorstQuickSort];
+			qsHIGH[0] = base.length-1;
+		}
+
+		quickSort(base, qsLOW[qsI], qsHIGH[qsI], secondary);
+	}
+
+	// if seconday array is passed, quick sorts both the base array and the secondary
+	// array using the values in the base array.
+	private static void quickSort(int[] base, int low, int high, int[] secondary) {
+		if (secondary != null && base.length != secondary.length){
+  			System.out.println("Arrays need to be same size!");
+  			return;
+		}
+		if (qsI == ITERATION_STOP){
+			// save the parameters for continuation
+			qsLOW[qsI] = low;
+			qsHIGH[qsI] = high;
+			return;
+		}
+		++qsI;
+
+        int i = low;
+        int j = high;
+        int pivot = base[low+(high-low)/2];
+        while (i <= j) {
+            while (base[i] < pivot) i++;
+            while (base[j] > pivot) j--;
+            if (i <= j) {
+                swap(base, i, j);
+                if (secondary!=null) swap(secondary, i, j);
+                i++;
+                j--;
+            }
+        }
+
+        if (low < j)
+            quickSort(base, low, j, secondary);
+        if (i < high)
+            quickSort(base, i, high, secondary);
+    }
+
 	// I'll give you one guess
     private static void swap(int[] arr, int i, int j){
   		int temp = arr[i];
@@ -675,4 +817,102 @@ class databendAnimate {
 		// return square root of square differences
 		return Math.sqrt(mean); 
   	}
+
+  	private static class VideoManager {
+		public static int MaxFrames = 10000;
+		public static int FrameCount = 0;
+
+		public static String AnimFrameDir = "";
+		public static String AnimFrame = null;
+		private static int[] AnimFrameColorData = null;
+		private static BufferedImage AnimImg = null;
+
+		public static void setFrameDir(String dir){
+			AnimFrameDir = dir;
+			runCMD("mkdir "+AnimFrameDir);
+		}
+
+		public VideoManager(BufferedImage img, String outputFileDir, int maxFrames){
+			setAnimImg(img);
+			AnimFrameDir = outputFileDir;
+			MaxFrames = maxFrames;
+		}
+
+		public static void saveFrame() throws Exception{
+
+			if (MaxFrames > 0 && FrameCount == MaxFrames){
+				throw new Exception("FrameCount exceeded MaxFrames, prompt user before continuing.");
+			}
+
+
+			AnimImg.setRGB(0, 0, AnimImg.getWidth(), AnimImg.getHeight(), AnimFrameColorData, 0, AnimImg.getWidth());
+
+			try {
+				ImageIO.write(AnimImg, "jpg", new File(String.format("%s/%s.jpg", AnimFrameDir, FrameCount++)));
+			} catch (Exception e){
+				e.printStackTrace();
+			}
+		}
+
+		public static void createMp4FFMPEG(String fileName, int framerate){
+			try {
+				runCMD(String.format("rm %s.mp4", fileName));
+				runCMD(String.format("ffmpeg -framerate %s -i %s/%%d.jpg -c:v libx264 -r 20 -pix_fmt yuv420p %s.mp4", 
+				framerate, AnimFrameDir, fileName)).waitFor();
+			} catch (Exception e){
+				System.out.println("Thread is no more");
+			}
+		}
+
+		public static void setAnimImg(BufferedImage img){
+			AnimImg = img;
+			int imgWidth = img.getWidth();
+			int imgHeight = img.getHeight();
+
+			try {
+				AnimFrameColorData = AnimImg.getRGB(0, 0, imgWidth, imgHeight, null, 0, imgWidth); 
+			} catch(Exception e){
+				System.out.println("Check parameters");
+			}
+		}
+
+		public static BufferedImage getAnimImg(){
+			return AnimImg;
+		}
+
+		public static int[] getAnimFrameColorData(){
+			return AnimFrameColorData;
+		}
+
+		private static Process runCMD(String cmd){
+	        Runtime rt = Runtime.getRuntime();
+	        try {
+	        	System.out.println("$"+cmd);
+	            Process p = rt.exec(cmd);
+
+				BufferedReader stdInput = new BufferedReader(new 
+				     InputStreamReader(p.getInputStream()));
+
+				BufferedReader stdError = new BufferedReader(new 
+				     InputStreamReader(p.getErrorStream()));
+
+				// read the output from the command
+				String s = null;
+				while ((s = stdInput.readLine()) != null) {
+				    System.out.println(s);
+				}
+
+				// read any errors from the attempted command
+				while ((s = stdError.readLine()) != null) {
+				    System.out.println(s);
+				}
+
+	            return p;
+	        } catch (Exception e){
+	            e.printStackTrace();
+	        }
+	        return null;
+	    }
+	}
 }
+
