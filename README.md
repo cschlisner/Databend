@@ -1,7 +1,7 @@
 Databend
 ========
 
-Hello! Databend is a small project I've been working on in hopes of producing some nice [glitch art](https://www.reddit.com/r/glitch_art). An image can be modified with this program with a very general level of control by the user. So while the output of two identical executions will never be the same, a user can specify which qualities the two resulting images should share. 
+Hello! Databend is a small project I've been working on in hopes of producing some nice glitch art. An image can be modified with this program with a very general level of control by the user. So while the output of two identical executions will never be the same, a user can specify which qualities the two resulting images should share. 
 
 The program is controlled by a series of operations and flags. The operations are performed on the image in the order they are specified in the command. 
 
